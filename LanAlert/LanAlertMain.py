@@ -95,7 +95,7 @@ try:
                 print date + ' - ' + time + ' - Pass Note'
             if outputnote:
                 for message in outputnote:
-                    channelid = openslackchannel(config['users']['SlackID'][str(message[1])],slacktoken)
+                    channelid = openslackchannel(config['users']['slackid'][str(message[1])],slacktoken)
                     if str(channelid['ok']).lower() == 'true':
                         response = posttoslack(message[0],slacktoken,channelid['channel']['id'],slackusername)
                         if str(response['ok']).lower() != 'true':
