@@ -3,14 +3,16 @@ Integration for ticket notifications between Lansweeper and Slack.
 
 ### Setup
 
-To use this program edit config.cfg with your information (you will need a slack bot configured)
+To use this program edit config.cfg with your information (you will need a slack bot configured).
 
-It is recommended to use pyinstaller to create an EXE and run it on your Lansweeper server. 
+A packaged .exe is provided under the executable folder, configure and run!
 
-You may also want to add more filtering to the soup function in LanAlertFunctions.py this is a very dirty function to clear signatures off tickets.
+For more advanced users, if you are getting signatures passed through to slack, edit the source for the "soup" function and add identifiable features for your companies signature line. 
 
 REQUIRED LIBRARIES:
 
 requests
+
 pymssql
+
 bs4
