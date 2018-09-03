@@ -58,6 +58,13 @@ def openslackchannel(user,token):
     }
     r = requests.post('https://slack.com/api/im.open', payload)
     return r.json()
+def userlookup(search,token):
+    payload = {'token': token}
+    r = requests.get('https://slack.com/api/users.list', payload)
+    for x in r.json()['members']:
+        if 'email' in str(x):
+            if search == x['profile']['email']:
+                return x['id']
 
 with open('config.cfg','r') as configimport:
     config = json.load(configimport)
@@ -110,7 +117,7 @@ notequery = '''SELECT TOP %s
 agentquery = '''SELECT  
             htblagents.agentid, 
             htblagents.userid, 
-            tblADusers.Info  
+            tblADusers.email
             FROM [lansweeperdb].[dbo].[htblagents]  
             LEFT JOIN htblusers on htblusers.userid = htblagents.userid  
             LEFT JOIN tblADusers on htblusers.username = tblADusers.Username  
@@ -118,14 +125,19 @@ agentquery = '''SELECT
 slackid = {}
 agenttouser = {}
 
-#Sets agents slack id from agent config and user config in lansweeper, slack ID comes from
+#Sets agents slack id from agent config and user config in lansweeper, Slack id is found based off email address
 try:
     for agent in sqlquery(agentquery,username,password,server):
-        slackid[str(agent[0])] = agent[2]
+        slackid[str(agent[0])] = userlookup(agent[2],slacktoken)
         agenttouser[str(agent[0])] = str(agent[1])
 except Exception as e:
     logfile.write('Config - Error setting slack and agent table ' + str(e) + '\n')
-    
+    print 'Config - Error setting slack and agent table. See Log'
+    exit(1)
+if [] in slackid.values():
+    logfile.write('Config - Slack ID not found \n')
+    print 'Config - Slack ID not found. Check if slack user has email set'
+    exit(1)
 currentticket,currentnote = sqlquery(startctcnquery, username, password, server)[0]
 try:
     while True:
@@ -148,7 +160,7 @@ try:
                     subject = '*%s* \n *From: %s --* \n' % (ticketlink,ticket[2])
                     outputticket.append(subject + body)
             else:
-                print date + ' - ' + time + ' - Pass Ticket'
+                print date + ' - ' + time + ' - No New Ticket'
             for messages in outputticket:
                 #Sends all new tickets to the main channel
                 response = posttoslack(messages, slacktoken, ticketchannel, slackusername, server)
@@ -176,7 +188,7 @@ try:
                         outputnote.append([subject+body,note[4]])
 
             else:
-                print date + ' - ' + time + ' - Pass Note'
+                print date + ' - ' + time + ' - No New Note'
             #Digests outputnote
             if outputnote:
                 for message in outputnote:

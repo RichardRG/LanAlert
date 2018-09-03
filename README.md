@@ -5,7 +5,7 @@ Integration for ticket notifications between Lansweeper and Slack.
 
 To use this program edit config.cfg with your information (you will need a slack bot configured).
 
-You will need to find the Slack ID for each agent you have configured. I have attached a short script to search for them please add the following permissions and fill in the Slackbot oauth token in the config before running . The SlackID needs to be set in the "info" field in AD or the same field in lansweeper for the user.  
+Make sure that all Slack users have their email address configured in their profile. 
 
 Your slack bot will need the following permissions. 
 
