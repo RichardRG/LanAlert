@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 from time import sleep
 from datetime import datetime
 import json
+import os
+import ConfigParser
 
 def sqlquery(query,username,password,server,database='lansweeperdb'):
     data = []
@@ -21,24 +23,24 @@ def sqlquery(query,username,password,server,database='lansweeperdb'):
     return data
 
 def soup(htmlstring):
-    #Cleans out signatures from notes.
-    presoup = htmlstring.split("<div><div><div>")[0]
-    presoup = presoup.split("<br><div>On")[0]
-    presoup = presoup.split('--')[0]
-    presoup = presoup.replace('<br style="">','\n').replace('<div','\n<div').replace('<p','\n<p')
-    soup = BeautifulSoup(presoup, "html.parser")
-    # kill all script and style elements
-    for script in soup(["script", "style"]):
-        script.extract()  # rip it out
-    # get text
-    text = soup.get_text()
-    # break into lines and remove leading and trailing space on each
-    lines = (line.strip() for line in text.splitlines())
-    # break multi-headlines into a line each
-    chunks = (phrase.strip() for line in lines for phrase in line.split("   "))
-    # drop blank lines"""
-    text = '\n'.join(chunk for chunk in chunks if chunk)
-    return text
+	#Cleans out signatures from notes.
+	presoup = htmlstring.split("<div><div><div>")[0]
+	presoup = presoup.split("<br><div>On")[0]
+	presoup = presoup.split('--')[0]
+	presoup = presoup.replace('<br style="">','\n').replace('<div','\n<div').replace('<p','\n<p')
+	soup = BeautifulSoup(presoup, "html.parser")
+	# kill all script and style elements
+	for script in soup(["script", "style"]):
+		script.extract()  # rip it out
+	# get text
+	text = soup.get_text()
+	# break into lines and remove leading and trailing space on each
+	lines = (line.strip() for line in text.splitlines())
+	# break multi-headlines into a line each
+	chunks = (phrase.strip() for line in lines for phrase in line.split("   "))
+	# drop blank lines"""
+	text = '\n'.join(chunk for chunk in chunks if chunk)
+	return text
 
 def posttoslack(body,token,channel,username,icon='',unfurl='true'):
     payload = {
@@ -66,22 +68,26 @@ def userlookup(search,token):
             if search == x['profile']['email']:
                 return x['id']
 
-with open('config.cfg','r') as configimport:
-    config = json.load(configimport)
+pwd = os.path.dirname(os.path.abspath(__file__))
+configfile = pwd + '/config.ini'
+logfile = pwd + '/lanalert.log'
 
-logfile = open('lanalert.log','a')
+config = ConfigParser.ConfigParser()
+config.read(configfile)
 
-print config['logo']['mainlogo']
+logfile = open(logfile,'a')
 
-username = config['database']['username']
-password = config['database']['password']
-server = config['database']['server']
+print config.get('LOGO','mainlogo')
 
-slacktoken = config['slacktoken']
-ticketchannel = config['channel']
-slackusername = config['slackbotusername']
+username = config.get('DATABASE','username')
+password = config.get('DATABASE','password')
+server = config.get('DATABASE','sqlserver')
 
-url = config['webaddress']
+slacktoken = config.get('SLACK','slacktoken')
+ticketchannel = config.get('SLACK','channel')
+slackusername = config.get('SLACK','slackbotusername')
+
+url = config.get('SERVER','url')
 
 startctcnquery = '''SELECT  
         ( SELECT TOP 1 MAX(htblticket.ticketid) as "Col 1"  
@@ -125,18 +131,18 @@ agentquery = '''SELECT
 slackid = {}
 agenttouser = {}
 
-#Sets agents slack id from agent config and user config in lansweeper, Slack id is found based off email address
+#Sets agents Slack id from agent config and user config in lansweeper, Slack id is found based off email address
 try:
     for agent in sqlquery(agentquery,username,password,server):
         slackid[str(agent[0])] = userlookup(agent[2],slacktoken)
         agenttouser[str(agent[0])] = str(agent[1])
 except Exception as e:
     logfile.write('Config - Error setting slack and agent table ' + str(e) + '\n')
-    print 'Config - Error setting slack and agent table. See Log'
+    print 'Config - Error setting slack and agent table. See Lanalert.log'
     exit(1)
 if [] in slackid.values():
     logfile.write('Config - Slack ID not found \n')
-    print 'Config - Slack ID not found. Check if slack user has email set'
+    print 'Config - Slack ID not found. Check if Slack user has email set.'
     exit(1)
 currentticket,currentnote = sqlquery(startctcnquery, username, password, server)[0]
 try:
@@ -178,7 +184,7 @@ try:
                 currentnote = newnote
                 for note in notes:
                     # Adds all notes that are not from agents to the outputnote var
-                    if str(note[5]) not in agenttouser.values():
+                    if str(note[5]) not in agenttouser.values() and str(note[7]) == '1':
                         #Strips HTML and signature from emails and returns clean body
                         body = soup(note[3])
                         #Formats clickable link for slack
@@ -186,6 +192,8 @@ try:
                         #formats subject
                         subject = '*%s* \n *From: %s --* \n' % (notelink, note[2])
                         outputnote.append([subject+body,note[4]])
+                    else:
+                        print date + ' - ' + time + ' - No New Note'
 
             else:
                 print date + ' - ' + time + ' - No New Note'
