@@ -3,7 +3,7 @@ Integration for ticket notifications between Lansweeper and Slack.
 
 ### Setup
 
-To use this program edit config.cfg with your information (you will need a slack bot configured).
+To use this program edit config.ini with your information (you will need a slack bot configured).
 
 Make sure that all Slack users have their email address configured in their profile. 
 
