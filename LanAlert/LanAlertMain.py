@@ -123,10 +123,10 @@ notequery = '''SELECT TOP %s
 agentquery = '''SELECT  
             htblagents.agentid, 
             htblagents.userid, 
-            tblADusers.email
+            htblusers.email
             FROM [lansweeperdb].[dbo].[htblagents]  
-            LEFT JOIN htblusers on htblusers.userid = htblagents.userid  
-            LEFT JOIN tblADusers on htblusers.username = tblADusers.Username  
+            INNER JOIN htblusers on htblusers.userid = htblagents.userid  
+            LEFT JOIN tblADusers on htblusers.username = tblADusers.Username
             WHERE active = 1'''
 slackid = {}
 agenttouser = {}
